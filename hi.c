@@ -84,7 +84,7 @@ void init_x() {
 	XSetForeground(dis, gc, black);
 	XClearWindow(dis, win);
 	XMapRaised(dis, win);
-	buffer = XGetImage(dis, d, 0, 0, 100, 100, plane_mask, format);
+	buffer = XGetImage(dis, win, 0, 0, 100, 100, plane_mask, format);
 };
 
 
@@ -98,5 +98,5 @@ void close_x() {
 
 void redraw() {
 	XClearWindow(dis, win);
-	XPutImage(dis, d, gc, buffer, 0, 0, 0, 0, 100, 100);
+	XPutImage(dis, win, gc, buffer, 0, 0, 0, 0, 100, 100);
 };
