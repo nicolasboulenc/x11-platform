@@ -66,10 +66,7 @@ xcb_gcontext_t create_graphics_context(xcb_window_t window) {
 	values[2] = 0;
 	
 	graphics_context = xcb_generate_id(connection);
-	xcb_create_gc(connection,
-		graphics_context, window,
-		mask, values);
-	
+	xcb_create_gc(connection, graphics_context, window,	mask, values);
 	return graphics_context;
 }
 
@@ -79,8 +76,7 @@ void event_loop(xcb_window_t window, xcb_gcontext_t graphics_context, xcb_pixmap
 	while(event = xcb_wait_for_event(connection)) {
 		switch(event->response_type) {
 		case XCB_EXPOSE:
-			xcb_copy_area(connection,
-				pixmap, window, graphics_context,
+			xcb_copy_area(connection, pixmap, window, graphics_context,
 				0, 0, 0, 0,
 				neko_width, neko_height);
 			xcb_flush(connection);

@@ -4,6 +4,10 @@
         "xcb.h": "c",
         "xcb_atom.h": "c",
         "xproto.h": "c",
-        "xcb_image.h": "c"
+        "xcb_image.h": "c",
+        "xutil.h": "c",
+        "unistd.h": "c",
+        "stdlib.h": "c",
+        "stdio.h": "c"
     }
 }

@@ -55,6 +55,8 @@ int main() {
 						XCB_COPY_FROM_PARENT,			// visual
 						mask, values);					// masks, not used
 
+	printf("%u", screen->root_visual);
+
 	// Set the title of the window
 	xcb_change_property(conn, XCB_PROP_MODE_REPLACE, win,
 						XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
