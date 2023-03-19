@@ -1,53 +1,96 @@
-#include <stdlib.h>
+
+// https://gist.github.com/skeeto/4ea7801438a01483cf5bdfa92d9f33f7
+
+// cc demo.c -lX11
+#include <stdint.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <SFML/Graphics.hpp>
-#include <X11/Xlib.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <X11/Xutil.h>
 
-int main() {
-  //Get X11-Display and Root-Window
-  Display*          x11_display;
-  Window            x11_window;
-  XWindowAttributes x11_window_attr;
-  x11_display = XOpenDisplay(NULL);
-  x11_window =  RootWindow(x11_display, DefaultScreen(x11_display));
-  XGetWindowAttributes(x11_display, x11_window, &x11_window_attr);
+static void draw(uint32_t *fb, int w, int h)
+{
+    clock_t now = clock();
+    int offx = now/(CLOCKS_PER_SEC/587) % w;
+    int offy = now/(CLOCKS_PER_SEC/593) % h;
+    for (int y = 0; y < h; y++) {
+        int r = ((y+offy) % 256) << 16;
+        for (int x = 0; x < w; x++) {
+            int b = ((x+offx) % 256) << 0;
+            fb[y*w+x] = r | b;
+        }
+    }
+}
 
-  //Create a fullscreen SFML-window
-  sf::RenderWindow sfml_window(sf::VideoMode(x11_window_attr.width, x11_window_attr.height), 
-                                "SFML Window", sf::Style::Fullscreen);
-  x11_window = sfml_window.getSystemHandle();
-  
+int main(void)
+{
+    int width = 1000, height = 700;
 
-  while (sfml_window.isOpen()) {
-    //Get SFML events
-    sf::Event event;
-    while (sfml_window.pollEvent(event)) {
-      if (event.type == sf::Event::Closed) {
-        sfml_window.close();
-      }
+    Display *dpy = XOpenDisplay(0);
+    if (!dpy) {
+        fputs("XOpenDisplay()\n", stderr);
+        return 1;
+    }
+    Window root = XDefaultRootWindow(dpy);
+    XSync(dpy, True);
+
+    int nxvisuals;
+    XVisualInfo vinfo = {.screen = DefaultScreen(dpy)};
+    XGetVisualInfo(dpy, VisualScreenMask, &vinfo, &nxvisuals);
+    if (!XMatchVisualInfo(dpy, XDefaultScreen(dpy), 24, TrueColor, &vinfo)) {
+        fputs("XMatchVisualInfo()\n", stderr);
+        return 1;
     }
 
-    //Color the window (increase r, g and b on each rendering loop)
-    static int cl = 0;
-    sfml_window.clear(sf::Color(cl,cl,cl));
-    cl = (cl+1) & 0xFF;
+    XSetWindowAttributes attrs = {
+        .colormap = XCreateColormap(dpy, root, vinfo.visual, AllocNone)
+    };
+    Window win = XCreateWindow(
+        dpy, root, 100, 100, width, height, 0, vinfo.depth, InputOutput,
+        vinfo.visual, CWBackPixel|CWColormap|CWBorderPixel, &attrs
+    );
+    XSelectInput(dpy, win, ExposureMask|KeyPressMask);
+    XMapWindow(dpy, win);
 
-    //Update the SFML window
-    sfml_window.display();
-    
-    //Wait 10ms (should not be required, but to be sure that it's not related to timing...)
-    usleep(10000);
+    // Technically malloc() is incorrect since it may be freed later by Xlib
+    // via XFree(). Unfortunately XCreateImage is impossible to use correctly,
+    // so just make do with malloc() since, in practice, it usually works.
+    uint32_t *fb = (uint32_t *)malloc(4*width*height);
+    if (!fb) {
+        fputs("malloc()\n", stderr);
+        return 1;
+    }
+    XImage *ximage = XCreateImage(
+        dpy, vinfo.visual, vinfo.depth, ZPixmap, 0, (char *)fb, width, height, 8, width*4
+    );
+    if (!ximage) {
+        fputs("XCreateImage()\n", stderr);
+        return 1;
+    }
 
-    //Get a screenshot and print a few pixel values
-    XImage* x11_image;
-    x11_image = XGetImage(x11_display, x11_window, 0, 0, x11_window_attr.width, 
-                          x11_window_attr.height, AllPlanes, ZPixmap);
-    printf("%d %d %d %d\n", x11_image->data[10], x11_image->data[20],  
-                            x11_image->data[30], x11_image->data[40]);
-    XDestroyImage(x11_image);
-  }
+    XGCValues gcv = {0};
+    GC gc = XCreateGC(dpy, root, GCGraphicsExposures, &gcv);
 
-  return 0;
+    // for (XEvent event; !XNextEvent(dpy, &event);) {
+    //     switch (event.type) {
+    //     case KeyPress:
+    //     case Expose:
+    //         draw(fb, width, height);
+    //         XPutImage(dpy, win, gc, ximage, 0, 0, 0, 0, width, height);
+    //         break;
+    //     }
+    // }
+
+    while(1) {
+      XEvent event;
+      Bool s = XCheckWindowEvent(dpy, win, StructureNotifyMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask, &event);
+      if(s) {
+        // process event
+        printf("event");
+      }
+      draw(fb, width, height);
+      XPutImage(dpy, win, gc, ximage, 0, 0, 0, 0, width, height);
+    }
+
 }

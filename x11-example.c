@@ -1,5 +1,6 @@
 // 1) gcc x11-example.c -o x11-example -l X11
 
+#include <stdint.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -70,7 +71,29 @@ void init_x() {
 	XSetForeground(dis, gc, black);
 	XClearWindow(dis, win);
 	XMapRaised(dis, win);
-
+	
+	int width = 100;
+	int height = 100;
+ 	char *fb = (char *)malloc(4 * 100 * 100);
+    if (!fb) {
+        printf("malloc()\n");
+        exit(1);
+    }
+	int nxvisuals;
+    XVisualInfo vinfo;
+	vinfo.screen = DefaultScreen(dis);
+    XGetVisualInfo(dis, VisualScreenMask, &vinfo, &nxvisuals);
+	buffer = XCreateImage(dis, vinfo.visual, vinfo.depth, ZPixmap, 0, (char *)fb, width, height, 8, width * 4);
+    if (!buffer) {
+        printf("XCreateImage()\n");
+        exit(1);
+    }
+	// for(int i=0; i< 100 * 100 * 4; i+=4) {
+	// 	buffer->data[i + 0] = 0x00; // b
+	// 	buffer->data[i + 1] = 0x00;	// g
+	// 	buffer->data[i + 2] = 0xff;	// r	
+	// 	buffer->data[i + 3] = 0xff;
+	// }
 };
 
 
@@ -83,21 +106,23 @@ void close_x() {
 
 
 void redraw() {
+	printf("redraw\n");
+
 	XClearWindow(dis, win);
 
 	if(buffer == NULL) {
-		buffer = XGetImage(dis, win, 0, 0, 100, 100, AllPlanes, ZPixmap);
-		for(int i=0; i< 100 * 100 * 4; i+=4) {
-			buffer->data[i + 0] = 0x00; // b
-			buffer->data[i + 1] = 0x00;	// g
-			buffer->data[i + 2] = 0xff;	// r	
-			buffer->data[i + 3] = 0xff;
-		}
+		// buffer = XGetImage(dis, win, 0, 0, 100, 100, AllPlanes, ZPixmap);
+		// for(int i=0; i< 100 * 100 * 4; i+=4) {
+		// 	buffer->data[i + 0] = 0x00; // b
+		// 	buffer->data[i + 1] = 0x00;	// g
+		// 	buffer->data[i + 2] = 0xff;	// r	
+		// 	buffer->data[i + 3] = 0xff;
+		// }
+		// printf("0x%06lx\n", buffer->red_mask);
+		// printf("0x%06lx\n", buffer->green_mask);
+		// printf("0x%06lx\n", buffer->blue_mask);
+		// printf("%u\n", buffer->bits_per_pixel);
 	}
 
-	printf("0x%06lx\n", buffer->red_mask);
-	printf("0x%06lx\n", buffer->green_mask);
-	printf("0x%06lx\n", buffer->blue_mask);
-	printf("%u\n", buffer->bits_per_pixel);
 	XPutImage(dis, win, gc, buffer, 0, 0, 0, 0, 100, 100);
 };
