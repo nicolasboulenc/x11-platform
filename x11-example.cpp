@@ -69,10 +69,9 @@ int main() {
 		timespec tmp;
 		clock_gettime(CLOCK_MONOTONIC, &tmp);
 		if((tmp.tv_nsec - app.timer.tv_nsec) > 16000000) {
-
 			draw(&app);
+			// printf("%li\n",(tmp.tv_nsec - app.timer.tv_nsec)/(long int)1000000);
 			clock_gettime(CLOCK_MONOTONIC, &(app.timer));
-			printf("%lu\n",(tmp.tv_nsec - app.timer.tv_nsec) / 1000000);
 		}
 	}
 }
