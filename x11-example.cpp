@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+#include <time.h>	// clock_gettime, nano_sleep
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -38,14 +38,17 @@ int main() {
 	char buffer[255];
 
 	app_init(&app);
+	clock_gettime(CLOCK_REALTIME, &(app.timer));
 
 	while(1) {
 		// Note: only events we set the mask for are detected!
 		// XNextEvent(dis, &event);
 
 		XEvent event;
-		Bool s = XCheckWindowEvent(app.dis, app.win, StructureNotifyMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask, &event);
-		if(s) {
+		Bool s = True;
+		while(s) {
+			s = XCheckWindowEvent(app.dis, app.win, StructureNotifyMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask, &event);
+			printf("event %i\n", s);
 			if (event.type == Expose && event.xexpose.count == 0) {
 				// the window was exposed redraw it!
 				// draw(&app);
@@ -67,12 +70,24 @@ int main() {
 		}
 
 		timespec tmp;
-		clock_gettime(CLOCK_MONOTONIC, &tmp);
-		if((tmp.tv_nsec - app.timer.tv_nsec) > 16000000) {
-			draw(&app);
-			// printf("%li\n",(tmp.tv_nsec - app.timer.tv_nsec)/(long int)1000000);
-			clock_gettime(CLOCK_MONOTONIC, &(app.timer));
+		clock_gettime(CLOCK_REALTIME, &tmp);
+		long int time_elapsed = (tmp.tv_nsec - app.timer.tv_nsec);
+		while(time_elapsed < 33000000) {
+			timespec sleep_time = { .tv_sec = 0, .tv_nsec = (33000000 - time_elapsed) };
+			// printf("%li\n", sleep_time.tv_nsec);
+			timespec remain_time;
+			int ret = clock_nanosleep(CLOCK_REALTIME, 0, &sleep_time, &remain_time);
+			// int ret = nanosleep(&sleep_time, &remain_time);
+			if(ret == -1) {
+				printf("interrupted %li\n",remain_time.tv_nsec/(long int)1000000);
+			}
+			clock_gettime(CLOCK_REALTIME, &tmp);
+			time_elapsed = (tmp.tv_nsec - app.timer.tv_nsec);
 		}
+
+		draw(&app);
+		// printf("%li\n",(tmp.tv_nsec - app.timer.tv_nsec)/(long int)1);
+		clock_gettime(CLOCK_REALTIME, &(app.timer));
 	}
 }
 
@@ -124,8 +139,6 @@ void app_init(t_app *app) {
 		fputs("XCreateGC()\n", stderr);
 		return;
 	}
-
-	clock_gettime(CLOCK_MONOTONIC, &(app->timer));
 };
 
 
@@ -142,7 +155,9 @@ void draw(t_app *app) {
 
 	// XClearWindow(app->dis, app->win);
 
-	uint8_t r = app->timer.tv_nsec % 255;
+	timespec tmp;
+	clock_gettime(CLOCK_REALTIME, &tmp);
+	uint8_t r = tmp.tv_nsec % (long int)255;
 
 	if(app->ximage != NULL) {
 		for(int i=0; i < app->width * app->height * 4; i+=4) {
@@ -158,23 +173,4 @@ void draw(t_app *app) {
 	}
 
 	XPutImage(app->dis, app->win, app->gc, app->ximage, 0, 0, 0, 0, app->width, app->height);
-	// XSync(app->dis, True);
 };
-
-
-// LARGE_INTEGER perf_freq;
-// QueryPerformanceFrequency(&perf_freq);
-// int64 performance_frequency = perf_freq.QuadPart;
-
-// inline int64 Get_Clock() {
-
-// 	LARGE_INTEGER performance_counter;
-// 	QueryPerformanceCounter(&performance_counter);
-// 	return performance_counter.QuadPart;
-// }
-
-
-// inline real32 Get_Milliseconds_Elapsed(int64 since_counter, int64 performance_frequency) {
-// 	return (real32)(Get_Clock() - since_counter) / (real32)performance_frequency * 1000.0f;
-// }
-
