@@ -115,6 +115,12 @@ void app_init(t_app *app) {
 		app->dis, root, 100, 100, app->width, app->height, 0, vinfo.depth, InputOutput,
 		vinfo.visual, CWBackPixel | CWColormap | CWBorderPixel, &attrs
 	);
+	// test without colormap
+	// XSetWindowAttributes attrs;
+	// app->win = XCreateWindow(
+	// 	app->dis, root, 100, 100, app->width, app->height, 0, vinfo.depth, InputOutput,
+	// 	vinfo.visual, CWBackPixel | CWBorderPixel, &attrs
+	// );
 	XSelectInput(app->dis, app->win, ExposureMask | KeyPressMask);
 	XMapWindow(app->dis, app->win);
 
