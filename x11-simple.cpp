@@ -20,14 +20,13 @@ typedef struct {
 
 t_app app = { .width = 1000, .height = 1000 };
 
-uint16_t fps = 59;
+uint16_t fps = 60;
 long int frame_time_ns = (1000 * 1000000) / fps;
 
 
 void app_init(t_app *app);
 void app_close(t_app *app);
-void loop(t_app *app);
-void draw(t_app *app);
+void app_draw(t_app *app);
 
 
 int main() {
@@ -40,22 +39,17 @@ int main() {
 	clock_gettime(CLOCK_REALTIME, &(app.timer));
 
 	while(1) {
-		// Note: only events we set the mask for are detected!
-		// XNextEvent(dis, &event);
 
 		XEvent event;
 		Bool s = True;
 		while(s) {
 			s = XCheckWindowEvent(app.dis, app.win, StructureNotifyMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask, &event);
-			// printf("event %i\n", s);
+
 			if (event.type == Expose && event.xexpose.count == 0) {
-				// the window was exposed redraw it!33
-				// draw(&app);
+				app_draw(&app);
 			}
 
 			if (event.type == KeyPress && XLookupString(&event.xkey, buffer, 255, &key, 0) == 1) {
-				// Use the XLookupString routine to convert the event KeyPress data into regular buffer. Weird but necessary...
-				// printf("You pressed %c key\n", buffer[0]);
 				if (buffer[0]=='q') {
 					app_close(&app);
 				}
@@ -79,7 +73,7 @@ int main() {
 			time_elapsed_ns = (tmp.tv_nsec - app.timer.tv_nsec);
 		}
 
-		draw(&app);
+		app_draw(&app);
 		printf("%li\n", time_elapsed_ns);
 		clock_gettime(CLOCK_REALTIME, &(app.timer));
 	}
@@ -128,13 +122,6 @@ void app_init(t_app *app) {
 		return;
 	}
 
-	for(int i=0; i < app->width * app->height * 4; i+=4) {
-		app->ximage->data[i + 0] = 0xff; 	// b
-		app->ximage->data[i + 1] = 0x00;	// g
-		app->ximage->data[i + 2] = 0xff;	// r	
-		app->ximage->data[i + 3] = 0xff;
-	}
-
 	XGCValues gcv = {0};
 	app->gc = XCreateGC(app->dis, root, GCGraphicsExposures, &gcv);
 	if (!app->gc) {
@@ -152,20 +139,20 @@ void app_close(t_app *app) {
 };
 
 
-void draw(t_app *app) {
+void app_draw(t_app *app) {
 
-	// XClearWindow(app->dis, app->win);
-
-	timespec tmp;
-	clock_gettime(CLOCK_REALTIME, &tmp);
-	uint8_t r = tmp.tv_nsec % (long int)255;
-
-	if(app->ximage != NULL) {
-		for(int i=0; i < app->width * app->height * 4; i+=4) {
-			app->ximage->data[i + 0] = 0xff; 	// b
-			app->ximage->data[i + 1] = 0x00;	// g
-			app->ximage->data[i + 2] = r;		// r	
-			app->ximage->data[i + 3] = 0xff;
+	clock_t now = clock();
+	int offx = now / (CLOCKS_PER_SEC / 500) % app->width;
+	int offy = now / (CLOCKS_PER_SEC / 500) % app->height;
+	for (int y = 0; y < app->height; y++) {
+		uint16_t r = ((y + offy) % 256);
+		for (int x = 0; x < app->width; x++) {
+			uint16_t b = ((x + offx) % 256);
+			int idx = (y * app->width + x) * 4;
+			app->ximage->data[idx + 0] = b;
+			app->ximage->data[idx + 1] = 0x00;
+			app->ximage->data[idx + 2] = r;
+			app->ximage->data[idx + 3] = 0xff;
 		}
 	}
 

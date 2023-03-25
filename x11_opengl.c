@@ -16,17 +16,13 @@
 int main() {
     Display *display = XOpenDisplay(NULL);
 
-    XVisualInfo *visual = glXChooseVisual(display, 0, (int[]){
-        GLX_RGBA,
-        GLX_DEPTH_SIZE, 24,
-        GLX_DOUBLEBUFFER,
-        None
-    });
+    int attr_list[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+    XVisualInfo *visual = glXChooseVisual(display, 0, attr_list);
     if (!visual) {
         fprintf(stderr, "Unable to choose visual\n");
         exit(1);
     }
-    printf("Visual ID: %x\n", visual->visualid);
+    printf("Visual ID: %li\n", visual->visualid);
 
     GLXContext gl_context = glXCreateContext(display, visual, 0, True);
     if (!gl_context) {
