@@ -1,4 +1,3 @@
-// gcc -o x11_opengl `pkg-config --libs x11 gl` x11_opengl.c
 
 #include <stdbool.h>
 #include <stdio.h>

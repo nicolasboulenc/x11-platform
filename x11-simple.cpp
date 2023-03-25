@@ -74,7 +74,7 @@ int main() {
 		}
 
 		app_draw(&app);
-		printf("%li\n", time_elapsed_ns);
+		// printf("%li\n", time_elapsed_ns);
 		clock_gettime(CLOCK_REALTIME, &(app.timer));
 	}
 }
@@ -110,7 +110,7 @@ void app_init(t_app *app) {
 	// Technically malloc() is incorrect since it may be freed later by Xlib
 	// via XFree(). Unfortunately XCreateImage is impossible to use correctly,
 	// so just make do with malloc() since, in practice, it usually works.
-	uint32_t *fb = (uint32_t *)malloc(4 * app->width * app->height);
+	uint8_t *fb = (uint8_t *)malloc(4 * app->width * app->height);
 	if (!fb) {
 		fputs("malloc()\n", stderr);
 		return;
