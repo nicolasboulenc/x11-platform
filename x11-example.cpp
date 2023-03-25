@@ -1,17 +1,14 @@
-// 1) gcc x11-example.c -o x11-example -l X11
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>	// clock_gettime, nano_sleep
+#include <stdlib.h>		// malloc, exit
+#include <stdint.h>		// uint16_t...
+#include <stdio.h>		// printf, fputs...
+#include <time.h>		// clock_gettime, nano_sleep
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-// using namespace std;
 
 typedef struct {
-
 	Display *dis;
 	Window win;
 	GC gc;
@@ -23,6 +20,8 @@ typedef struct {
 
 t_app app = { .width = 1000, .height = 1000 };
 
+uint16_t fps = 59;
+long int frame_time_ns = (1000 * 1000000) / fps;
 
 
 void app_init(t_app *app);
@@ -48,9 +47,9 @@ int main() {
 		Bool s = True;
 		while(s) {
 			s = XCheckWindowEvent(app.dis, app.win, StructureNotifyMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask, &event);
-			printf("event %i\n", s);
+			// printf("event %i\n", s);
 			if (event.type == Expose && event.xexpose.count == 0) {
-				// the window was exposed redraw it!
+				// the window was exposed redraw it!33
 				// draw(&app);
 			}
 
@@ -71,22 +70,17 @@ int main() {
 
 		timespec tmp;
 		clock_gettime(CLOCK_REALTIME, &tmp);
-		long int time_elapsed = (tmp.tv_nsec - app.timer.tv_nsec);
-		while(time_elapsed < 33000000) {
-			timespec sleep_time = { .tv_sec = 0, .tv_nsec = (33000000 - time_elapsed) };
-			// printf("%li\n", sleep_time.tv_nsec);
-			timespec remain_time;
-			int ret = clock_nanosleep(CLOCK_REALTIME, 0, &sleep_time, &remain_time);
-			// int ret = nanosleep(&sleep_time, &remain_time);
-			if(ret == -1) {
-				printf("interrupted %li\n",remain_time.tv_nsec/(long int)1000000);
-			}
+		long int time_elapsed_ns = tmp.tv_nsec - app.timer.tv_nsec;
+		// to fix: how is time_elapsed getting negative???
+		while(time_elapsed_ns > 0 && time_elapsed_ns < frame_time_ns) {
+			timespec sleep_time = { .tv_sec = 0, .tv_nsec = (frame_time_ns - time_elapsed_ns) };
+			int ret = clock_nanosleep(CLOCK_REALTIME, 0, &sleep_time, NULL);
 			clock_gettime(CLOCK_REALTIME, &tmp);
-			time_elapsed = (tmp.tv_nsec - app.timer.tv_nsec);
+			time_elapsed_ns = (tmp.tv_nsec - app.timer.tv_nsec);
 		}
 
 		draw(&app);
-		// printf("%li\n",(tmp.tv_nsec - app.timer.tv_nsec)/(long int)1);
+		printf("%li\n", time_elapsed_ns);
 		clock_gettime(CLOCK_REALTIME, &(app.timer));
 	}
 }
@@ -115,12 +109,7 @@ void app_init(t_app *app) {
 		app->dis, root, 100, 100, app->width, app->height, 0, vinfo.depth, InputOutput,
 		vinfo.visual, CWBackPixel | CWColormap | CWBorderPixel, &attrs
 	);
-	// test without colormap
-	// XSetWindowAttributes attrs;
-	// app->win = XCreateWindow(
-	// 	app->dis, root, 100, 100, app->width, app->height, 0, vinfo.depth, InputOutput,
-	// 	vinfo.visual, CWBackPixel | CWBorderPixel, &attrs
-	// );
+
 	XSelectInput(app->dis, app->win, ExposureMask | KeyPressMask);
 	XMapWindow(app->dis, app->win);
 
@@ -137,6 +126,13 @@ void app_init(t_app *app) {
 	if (!app->ximage) {
 		fputs("XCreateImage()\n", stderr);
 		return;
+	}
+
+	for(int i=0; i < app->width * app->height * 4; i+=4) {
+		app->ximage->data[i + 0] = 0xff; 	// b
+		app->ximage->data[i + 1] = 0x00;	// g
+		app->ximage->data[i + 2] = 0xff;	// r	
+		app->ximage->data[i + 3] = 0xff;
 	}
 
 	XGCValues gcv = {0};
@@ -157,7 +153,6 @@ void app_close(t_app *app) {
 
 
 void draw(t_app *app) {
-	// printf("draw\n");
 
 	// XClearWindow(app->dis, app->win);
 
@@ -169,13 +164,9 @@ void draw(t_app *app) {
 		for(int i=0; i < app->width * app->height * 4; i+=4) {
 			app->ximage->data[i + 0] = 0xff; 	// b
 			app->ximage->data[i + 1] = 0x00;	// g
-			app->ximage->data[i + 2] = r;	// r	
+			app->ximage->data[i + 2] = r;		// r	
 			app->ximage->data[i + 3] = 0xff;
 		}
-		// printf("0x%06lx\n", buffer->red_mask);
-		// printf("0x%06lx\n", buffer->green_mask);
-		// printf("0x%06lx\n", buffer->blue_mask);
-		// printf("%u\n", buffer->bits_per_pixel);
 	}
 
 	XPutImage(app->dis, app->win, app->gc, app->ximage, 0, 0, 0, 0, app->width, app->height);
