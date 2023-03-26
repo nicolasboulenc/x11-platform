@@ -13,7 +13,9 @@
                 "-l",
                 "X11",
                 "-l",
-                "GL"
+                "GL",
+                "-l",
+                "xcb"
             ],
             "options": {
                 "cwd": "${fileDirname}"
