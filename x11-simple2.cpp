@@ -160,6 +160,5 @@ void app_draw(t_app *app) {
 		}
 	}
 	XCopyArea(app->dis, app->ximage, app->pixmap, app->gc, 0, 0, app->width, app->height,  0, 0);
-	XSwap
 	// XPutImage(app->dis, app->win, app->gc, app->ximage, 0, 0, 0, 0, app->width, app->height);
 };
