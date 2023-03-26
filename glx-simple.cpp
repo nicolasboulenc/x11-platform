@@ -61,6 +61,11 @@ int main() {
 	}
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, fb);
 
+    GLenum err = glGetError();
+    if(err != GL_NO_ERROR) {
+        printf("error! %u", err);
+    }
+
 
     bool quit = false;
     while (!quit) {
