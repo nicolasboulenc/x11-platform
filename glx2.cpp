@@ -1,4 +1,7 @@
 // https://github.com/gamedevtech/X11OpenGLWindow
+// spronovo@DESKTOP-4RE4J3H:~$ export MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
+// spronovo@DESKTOP-4RE4J3H:~$ glxinfo -B
+// https://github.com/microsoft/wslg/wiki/GPU-selection-in-WSLg
 
 #include <iostream>
 #include <cstring>
@@ -222,7 +225,6 @@ int main(int argc, char** argv) {
 			break;
 		}
 		Render();
-
 		// Present frame
 		glXSwapBuffers(display, window);
 
@@ -230,7 +232,10 @@ int main(int argc, char** argv) {
 		gettimeofday(&time, NULL);
 		nextGameTick += SKIP_TICKS;
 		sleepTime = nextGameTick - ((time.tv_sec * 1000) + (time.tv_usec / 1000));
-		usleep((unsigned int)(sleepTime / 1000));
+		printf("%u\n", (unsigned int)(sleepTime / 1000));
+		if(sleepTime > 0) {
+			usleep((unsigned int)(sleepTime / 1000));
+		}
 	}
 
 	std::cout << "Shutting Down\n";
@@ -264,8 +269,10 @@ void Render() {
 	glBegin(GL_TRIANGLES);
 		glColor3f(  1.0f,  0.0f, 0.0f);
 		glVertex3f( 0.0f, -1.0f, 0.0f);
+
 		glColor3f(  0.0f,  1.0f, 0.0f);
 		glVertex3f(-1.0f,  1.0f, 0.0f);
+
 		glColor3f(  0.0f,  0.0f, 1.0f);
 		glVertex3f( 1.0f,  1.0f, 0.0f);
 	glEnd();
