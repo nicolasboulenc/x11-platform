@@ -13,7 +13,7 @@ typedef struct {
 	Window win;
 	GC gc;
 	XImage *ximage;
-	Pixmap *pixmap;
+	Pixmap pixmap;
 	uint16_t width;
 	uint16_t height;
 	timespec timer;
@@ -27,7 +27,7 @@ long int frame_time_ns = (1000 * 1000000) / fps;
 
 void app_init(t_app *app);
 void app_close(t_app *app);
-void app_draw(t_app *app);
+void app_draw(t_app *app, long int time_elapsed_ns);
 
 
 int main() {
@@ -47,7 +47,7 @@ int main() {
 			s = XCheckWindowEvent(app.dis, app.win, StructureNotifyMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask, &event);
 
 			if (event.type == Expose && event.xexpose.count == 0) {
-				app_draw(&app);
+				app_draw(&app, 0);
 			}
 
 			if (event.type == KeyPress && XLookupString(&event.xkey, buffer, 255, &key, 0) == 1) {
@@ -74,7 +74,7 @@ int main() {
 			time_elapsed_ns = (tmp.tv_nsec - app.timer.tv_nsec);
 		}
 
-		app_draw(&app);
+		app_draw(&app, time_elapsed_ns);
 		// printf("%li\n", time_elapsed_ns);
 		clock_gettime(CLOCK_REALTIME, &(app.timer));
 	}
@@ -123,8 +123,7 @@ void app_init(t_app *app) {
 		return;
 	}
 
-
-	app->pixmap = XCreatePixmap(app->dis, app->win, app->width, app->height);
+	app->pixmap = XCreatePixmap(app->dis, app->win, app->width, app->height, vinfo.depth);
 
 	XGCValues gcv = {0};
 	app->gc = XCreateGC(app->dis, root, GCGraphicsExposures, &gcv);
@@ -143,15 +142,15 @@ void app_close(t_app *app) {
 };
 
 
-void app_draw(t_app *app) {
+void app_draw(t_app *app, long int time_elapsed_ns) {
 
 	clock_t now = clock();
 	int offx = now / (CLOCKS_PER_SEC / 500) % app->width;
 	int offy = now / (CLOCKS_PER_SEC / 500) % app->height;
 	for (int y = 0; y < app->height; y++) {
-		uint16_t r = ((y + offy) % 256);
+		uint16_t r = ((offy - y) % 256);
 		for (int x = 0; x < app->width; x++) {
-			uint16_t b = ((x + offx) % 256);
+			uint16_t b = ((offx - x) % 256);
 			int idx = (y * app->width + x) * 4;
 			app->ximage->data[idx + 0] = b;
 			app->ximage->data[idx + 1] = 0x00;
@@ -159,6 +158,11 @@ void app_draw(t_app *app) {
 			app->ximage->data[idx + 3] = 0xff;
 		}
 	}
-	XCopyArea(app->dis, app->ximage, app->pixmap, app->gc, 0, 0, app->width, app->height,  0, 0);
+
+
 	// XPutImage(app->dis, app->win, app->gc, app->ximage, 0, 0, 0, 0, app->width, app->height);
+	XPutImage(app->dis, app->pixmap, app->gc, app->ximage, 0, 0, 0, 0, app->width, app->height);
+
+	XDrawString(app->dis, app->pixmap, app->gc, 10, 10, "test", 4);
+	XCopyArea(app->dis, app->pixmap, app->win, app->gc, 0, 0, app->width, app->height, 0, 0);
 };
