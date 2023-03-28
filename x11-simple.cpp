@@ -13,12 +13,14 @@ typedef struct {
 	Window win;
 	GC gc;
 	XImage *ximage;
+	Pixmap pixmap;
 	uint16_t width;
 	uint16_t height;
 	timespec timer;
 } t_app;
 
-t_app app = { .width = 1000, .height = 1000 };
+t_app _app = { .width = 1000, .height = 1000 };
+t_app *app = &_app;
 
 uint16_t fps = 60;
 long int frame_time_ns = (1000 * 1000000) / fps;
@@ -26,7 +28,7 @@ long int frame_time_ns = (1000 * 1000000) / fps;
 
 void app_init(t_app *app);
 void app_close(t_app *app);
-void app_draw(t_app *app);
+void app_update(t_app *app, long int time_elapsed_ns);
 
 
 int main() {
@@ -35,23 +37,23 @@ int main() {
 	KeySym key;
 	char buffer[255];
 
-	app_init(&app);
-	clock_gettime(CLOCK_REALTIME, &(app.timer));
+	app_init(app);
+	clock_gettime(CLOCK_REALTIME, &(app->timer));
 
 	while(1) {
 
 		XEvent event;
 		Bool s = True;
 		while(s) {
-			s = XCheckWindowEvent(app.dis, app.win, StructureNotifyMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask, &event);
+			s = XCheckWindowEvent(app->dis, app->win, StructureNotifyMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask, &event);
 
 			if (event.type == Expose && event.xexpose.count == 0) {
-				app_draw(&app);
+				app_update(app, 0);
 			}
 
 			if (event.type == KeyPress && XLookupString(&event.xkey, buffer, 255, &key, 0) == 1) {
 				if (buffer[0]=='q') {
-					app_close(&app);
+					app_close(app);
 				}
 			}
 
@@ -62,20 +64,27 @@ int main() {
 			}
 		}
 
+		app_update(app, 0);
+
 		timespec tmp;
 		clock_gettime(CLOCK_REALTIME, &tmp);
-		long int time_elapsed_ns = tmp.tv_nsec - app.timer.tv_nsec;
+		long int time_elapsed_ns = tmp.tv_nsec - app->timer.tv_nsec;
 		// to fix: how is time_elapsed getting negative???
 		while(time_elapsed_ns > 0 && time_elapsed_ns < frame_time_ns) {
 			timespec sleep_time = { .tv_sec = 0, .tv_nsec = (frame_time_ns - time_elapsed_ns) };
 			int ret = clock_nanosleep(CLOCK_REALTIME, 0, &sleep_time, NULL);
 			clock_gettime(CLOCK_REALTIME, &tmp);
-			time_elapsed_ns = (tmp.tv_nsec - app.timer.tv_nsec);
+			time_elapsed_ns = (tmp.tv_nsec - app->timer.tv_nsec);
 		}
 
-		app_draw(&app);
+		char buf[32];
+		int n = sprintf(buf, "%5.2f", (float)time_elapsed_ns/(float)1000000.0);
+
+		XDrawString(app->dis, app->pixmap, app->gc, 10, 20, buf, 6);
+		XCopyArea(app->dis, app->pixmap, app->win, app->gc, 0, 0, app->width, app->height, 0, 0);
+
 		// printf("%li\n", time_elapsed_ns);
-		clock_gettime(CLOCK_REALTIME, &(app.timer));
+		clock_gettime(CLOCK_REALTIME, &(app->timer));
 	}
 }
 
@@ -88,7 +97,7 @@ void app_init(t_app *app) {
 		return;
 	}
 	Window root = XDefaultRootWindow(app->dis);
-	XSync(app->dis, True);
+	// XSync(app->dis, True);
 
 	int nxvisuals;
 	XVisualInfo vinfo = { .screen = DefaultScreen(app->dis) };
@@ -98,10 +107,11 @@ void app_init(t_app *app) {
 		return;
 	}
 
-	XSetWindowAttributes attrs = { .colormap = XCreateColormap(app->dis, root, vinfo.visual, AllocNone) };
+	// XSetWindowAttributes attrs = { .colormap = XCreateColormap(app->dis, root, vinfo.visual, AllocNone) };
 	app->win = XCreateWindow(
 		app->dis, root, 100, 100, app->width, app->height, 0, vinfo.depth, InputOutput,
-		vinfo.visual, CWBackPixel | CWColormap | CWBorderPixel, &attrs
+		// vinfo.visual, CWBackPixel | CWColormap | CWBorderPixel, &attrs
+		vinfo.visual, 0, NULL
 	);
 
 	XSelectInput(app->dis, app->win, ExposureMask | KeyPressMask);
@@ -122,12 +132,37 @@ void app_init(t_app *app) {
 		return;
 	}
 
+	app->pixmap = XCreatePixmap(app->dis, app->win, app->width, app->height, vinfo.depth);
+
 	XGCValues gcv = {0};
 	app->gc = XCreateGC(app->dis, root, GCGraphicsExposures, &gcv);
 	if (!app->gc) {
 		fputs("XCreateGC()\n", stderr);
 		return;
 	}
+	XSetForeground(app->dis, app->gc, 0xffffff);
+};
+
+
+void app_update(t_app *app, long int time_elapsed_ns) {
+
+	clock_t now = clock();
+	int offx = now / (CLOCKS_PER_SEC / 500) % app->width;
+	int offy = now / (CLOCKS_PER_SEC / 500) % app->height;
+	for (int y = 0; y < app->height; y++) {
+		uint16_t r = ((offy - y) % 256);
+		for (int x = 0; x < app->width; x++) {
+			uint16_t b = ((offx - x) % 256);
+			int idx = (y * app->width + x) * 4;
+			app->ximage->data[idx + 0] = b;
+			app->ximage->data[idx + 1] = 0x00;
+			app->ximage->data[idx + 2] = r;
+			app->ximage->data[idx + 3] = 0xff;
+		}
+	}
+
+	// XPutImage(app->dis, app->win, app->gc, app->ximage, 0, 0, 0, 0, app->width, app->height);
+	XPutImage(app->dis, app->pixmap, app->gc, app->ximage, 0, 0, 0, 0, app->width, app->height);
 };
 
 
@@ -138,23 +173,3 @@ void app_close(t_app *app) {
 	exit(0);
 };
 
-
-void app_draw(t_app *app) {
-
-	clock_t now = clock();
-	int offx = now / (CLOCKS_PER_SEC / 500) % app->width;
-	int offy = now / (CLOCKS_PER_SEC / 500) % app->height;
-	for (int y = 0; y < app->height; y++) {
-		uint16_t r = ((y + offy) % 256);
-		for (int x = 0; x < app->width; x++) {
-			uint16_t b = ((x + offx) % 256);
-			int idx = (y * app->width + x) * 4;
-			app->ximage->data[idx + 0] = b;
-			app->ximage->data[idx + 1] = 0x00;
-			app->ximage->data[idx + 2] = r;
-			app->ximage->data[idx + 3] = 0xff;
-		}
-	}
-
-	XPutImage(app->dis, app->win, app->gc, app->ximage, 0, 0, 0, 0, app->width, app->height);
-};
