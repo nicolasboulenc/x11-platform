@@ -9,6 +9,7 @@
         "unistd.h": "c",
         "stdlib.h": "c",
         "stdio.h": "c",
-        "random": "cpp"
+        "random": "cpp",
+        "xcb_util.h": "c"
     }
 }
