@@ -13,7 +13,7 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
-            "environment": [],
+            "environment": [{"name":"MESA_D3D12_DEFAULT_ADAPTER_NAME", "value":"NVIDIA"}],
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
