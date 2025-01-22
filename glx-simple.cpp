@@ -1,4 +1,6 @@
 
+//  gcc glx-simple.cpp -lX11 -lGL -fpermissive -o glx-simple
+
 // https://github.com/gamedevtech/X11OpenGLWindow
 // spronovo@DESKTOP-4RE4J3H:~$ export MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
 // spronovo@DESKTOP-4RE4J3H:~$ glxinfo -B

@@ -1,3 +1,5 @@
+//  gcc glx-test.cpp -lX11 -lGL -fpermissive
+
 #include <GL/glx.h>
 #include <GL/gl.h>
 #include <string.h>
