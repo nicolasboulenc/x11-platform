@@ -4,8 +4,6 @@
 // spronovo@DESKTOP-4RE4J3H:~$ glxinfo -B
 // https://github.com/microsoft/wslg/wiki/GPU-selection-in-WSLg
 
-
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +21,7 @@ int main() {
 
     Display *display = XOpenDisplay(NULL);
 
-    int attr_list[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+    int attr_list[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
     XVisualInfo *visual = glXChooseVisual(display, 0, attr_list);
     if (!visual) {
         fprintf(stderr, "Unable to choose visual\n");
@@ -133,16 +131,16 @@ int main() {
 
         glBegin(GL_QUADS);
             glTexCoord2f(-1.0f, -1.0f); 
-            glVertex2f(-0.5f, -0.5f); 
+            glVertex2f(-1.0f, -1.0f); 
 
             glTexCoord2f(1.0f, -1.0f); 
-            glVertex2f(0.5f, -0.5f); 
+            glVertex2f(1.0f, -1.0f); 
 
             glTexCoord2f(1.0f, 1.0f); 
-            glVertex2f(0.5f, 0.5f); 
+            glVertex2f(1.0f, 1.0f); 
 
             glTexCoord2f(-1.0f, 1.0f); 
-            glVertex2f(-0.5f, 0.5f);
+            glVertex2f(-1.0f, 1.0f);
         glEnd();
 
         glXSwapBuffers(display, window);
