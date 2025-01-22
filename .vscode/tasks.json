@@ -10,10 +10,13 @@
                 "${file}",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}",
+                // "-l",
+                // "X11",
                 "-l",
-                "X11",
-                "-l",
-                "GL"
+                "wayland-client",
+                // "-l",
+                // "GL",
+                "-fpermissive"
             ],
             "options": {
                 "cwd": "${fileDirname}"
