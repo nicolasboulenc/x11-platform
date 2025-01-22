@@ -1,4 +1,5 @@
 
+// x11 with GL fixed pipeline
 //  gcc glx-simple.cpp -lX11 -lGL -fpermissive -o glx-simple
 
 // https://github.com/gamedevtech/X11OpenGLWindow

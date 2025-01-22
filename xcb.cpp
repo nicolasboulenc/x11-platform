@@ -1,4 +1,6 @@
-//  gcc xcb.cpp -lX11 -lxcb -lX11-xcb -lGL -fpermissive
+
+// xcb with GL fixed pipeline
+// gcc xcb.cpp -lX11 -lxcb -lX11-xcb -lGL -fpermissive
 // https://xcb.freedesktop.org/opengl/
 
 #include <stdio.h>
